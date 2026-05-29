@@ -16,11 +16,12 @@ class DamageObservation(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
-    vehicle: Vehicle
-    damage_observations: List[DamageObservation] = []  # manual input for POC
+    lot_title: str = ""                                # raw Copart title — parsed into vehicle if vehicle omitted
+    vehicle: Vehicle | None = None
+    damage_observations: List[DamageObservation] = []
     images: List[str] = []                             # Copart lot image URLs (YOLO path)
     hammer_price: float
-    arv: float                                         # After Repair Value — enter manually for POC
+    arv: float
 
 
 class PanelEstimate(BaseModel):

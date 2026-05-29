@@ -5,9 +5,10 @@ from dotenv import load_dotenv
 
 from damage import detect_damage
 from ebay import search_part_price
-from models import AnalyzeRequest, AnalyzeResponse, DamageObservation, PanelEstimate
+from models import AnalyzeRequest, AnalyzeResponse, DamageObservation, PanelEstimate, Vehicle
 from panel_config import REPAIR_STRATEGY
 from roi import calculate_roi
+from vehicle import parse_lot_title
 
 load_dotenv()
 
@@ -37,8 +38,18 @@ async def analyze_lot(req: AnalyzeRequest):
     else:
         raise HTTPException(status_code=400, detail="Provide image URLs or damage_observations.")
 
-    # Fetch eBay part prices only for observations that need replacement
+    # Resolve vehicle identity: explicit vehicle wins, else parse the lot title.
     vehicle = req.vehicle
+    if vehicle is None:
+        parsed = parse_lot_title(req.lot_title) if req.lot_title else None
+        if parsed is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Provide a vehicle object or a parseable lot_title.",
+            )
+        vehicle = Vehicle(**parsed)
+
+    # Fetch eBay part prices only for observations that need replacement
     replacement_indices = {
         i: search_part_price(obs.panel, vehicle.make, vehicle.model, vehicle.year)
         for i, obs in enumerate(observations)

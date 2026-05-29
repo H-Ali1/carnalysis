@@ -34,8 +34,9 @@ async def _get_access_token() -> str:
 
 
 async def search_part_price(panel: str, make: str, model: str, year: int) -> Optional[float]:
-    search_term = PANEL_SEARCH_TERMS.get(panel, panel.replace("_", " "))
-    query = f"{year} {make} {model} {search_term}"
+    config = PANEL_SEARCH_TERMS.get(panel, {"term": panel.replace("_", " "), "min_price": 10})
+    query = f"{year} {make} {model} {config['term']}"
+    min_price = config["min_price"]
 
     try:
         token = await _get_access_token()
@@ -48,9 +49,8 @@ async def search_part_price(panel: str, make: str, model: str, year: int) -> Opt
                 },
                 params={
                     "q": query,
-                    "filter": "itemLocationCountry:GB,conditions:{USED}",
+                    "filter": f"itemLocationCountry:GB,conditions:{{USED}},price:[{min_price}..],priceCurrency:GBP",
                     "limit": 10,
-                    "sort": "price",
                 },
             )
             resp.raise_for_status()
@@ -65,4 +65,4 @@ async def search_part_price(panel: str, make: str, model: str, year: int) -> Opt
     )
     if not prices:
         return None
-    return prices[len(prices) // 2]  # median price
+    return prices[len(prices) // 2]  # median of relevance-ranked results

@@ -7,25 +7,25 @@ REPAIR_STRATEGY = {
     "missing": {"parts_needed": True,  "labor_gbp": 200},
 }
 
-# eBay search terms per panel (used when parts_needed=True)
+# eBay search config per panel: term used in query + min price floor to filter sub-components
 PANEL_SEARCH_TERMS = {
-    "front_bumper":    "front bumper cover",
-    "rear_bumper":     "rear bumper cover",
-    "bonnet":          "bonnet",
-    "tailgate":        "tailgate boot lid",
-    "roof":            "roof panel",
-    "front_wing_os":   "front wing driver side",
-    "front_wing_ns":   "front wing passenger side",
-    "door_front_os":   "front door driver side",
-    "door_front_ns":   "front door passenger side",
-    "door_rear_os":    "rear door driver side",
-    "door_rear_ns":    "rear door passenger side",
-    "rear_quarter_os": "rear quarter panel driver",
-    "rear_quarter_ns": "rear quarter panel passenger",
-    "headlight_os":    "headlight driver side",
-    "headlight_ns":    "headlight passenger side",
-    "taillight_os":    "rear light driver side",
-    "taillight_ns":    "rear light passenger side",
+    "front_bumper":    {"term": "front bumper complete",         "min_price": 30},
+    "rear_bumper":     {"term": "rear bumper complete",          "min_price": 25},
+    "bonnet":          {"term": "bonnet complete",               "min_price": 40},
+    "tailgate":        {"term": "tailgate complete",             "min_price": 40},
+    "roof":            {"term": "roof panel",                    "min_price": 60},
+    "front_wing_os":   {"term": "front wing driver side",        "min_price": 20},
+    "front_wing_ns":   {"term": "front wing passenger side",     "min_price": 20},
+    "door_front_os":   {"term": "front door complete driver",    "min_price": 35},
+    "door_front_ns":   {"term": "front door complete passenger", "min_price": 35},
+    "door_rear_os":    {"term": "rear door complete driver",     "min_price": 30},
+    "door_rear_ns":    {"term": "rear door complete passenger",  "min_price": 30},
+    "rear_quarter_os": {"term": "rear quarter panel driver",     "min_price": 50},
+    "rear_quarter_ns": {"term": "rear quarter panel passenger",  "min_price": 50},
+    "headlight_os":    {"term": "headlight driver side",         "min_price": 20},
+    "headlight_ns":    {"term": "headlight passenger side",      "min_price": 20},
+    "taillight_os":    {"term": "rear light driver side",        "min_price": 15},
+    "taillight_ns":    {"term": "rear light passenger side",     "min_price": 15},
 }
 
 COPART_FEE_RATE = 0.12    # ~12% buyer's fee
