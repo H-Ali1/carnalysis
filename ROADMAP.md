@@ -4,6 +4,11 @@
 > ("2017 VOLKSWAGEN POLO 1.0 75 MATCH EDITION 5DR") exposes Make/Model/Year/Trim/Engine, and the page already
 > shows Copart's own "Estimated retail value" field. This removes two of the three original Phase 1 blockers
 > without needing any external API or a paid member account.
+>
+> **Decision (May 2026):** VIN/VRM decode (DVLA/VIN APIs) is **dropped entirely**. Members can see VIN/VRN and
+> guests can't, but the lot title already exposes Make/Model/Year/Engine for both, so an external lookup would
+> only re-derive data already on the page. Car colour — the one genuinely extra field — will instead be sampled
+> from the lot photos in Phase 4, reusing the Phase 2 YOLO panel masks (no external API needed).
 
 ---
 
@@ -15,9 +20,9 @@
 | # | Task | Status |
 |---|------|--------|
 | 1 | Parse lot title for Make/Model/Year/Trim/Engine (replaces VIN decode for v1) | Pending |
-| 2 | Scrape Copart "Estimated retail value" field as ARV (replaces AutoTrader integration for v1) | Pending |
+| 2 | Scrape Copart "Estimated retail value" field as ARV (replaces AutoTrader integration for v1) | Done — in extension `extract.ts` (selector needs live-DOM verification) |
 | 3 | SQLite caching for lots and eBay price history | Pending |
-| 1b | VIN/VRM decode via DVLA API — deferred, requires Copart member account to unlock VIN | Deferred |
+| 1b | VIN/VRM decode via DVLA API | Dropped — title already exposes make/model/year/engine; an external lookup only re-derives on-page data |
 
 ### What's working
 - eBay Browse API part price lookup (concurrent, median-priced, UK used listings)
@@ -25,9 +30,9 @@
 - Manual damage input path (`damage_observations` in request body) is fully functional
 
 ### Blockers
-- **Vehicle identity is title-only for now** — VIN and VRN are both masked on guest accounts. Lot title parsing
-  gives sufficient Make/Model/Year/Trim for v1 eBay queries. VIN decode requires a paid Copart member account
-  and is deferred to Phase 4.
+- **Vehicle identity is title-only by design** — VIN/VRN are masked for guests and visible to members, but we
+  use neither. The lot title already exposes Make/Model/Year/Engine, so an external VIN/DVLA lookup would only
+  re-derive on-page data. VIN/VRM decode is dropped (see Task 1b), not deferred.
 - **ARV now solved** — Copart's "Estimated retail value" field is visible on the lot page without an account.
   The extension scrapes it directly. AutoTrader/Marketcheck is no longer a v1 dependency.
 - **No data persistence** — every request re-queries eBay from scratch. Repeated lookups for the same vehicle
@@ -86,15 +91,24 @@ inputs.
 ### Tasks
 | # | Task | Status |
 |---|------|--------|
-| 6 | Build Chrome extension scaffold (React + Vite + CRXJS) | Pending |
-| 7 | Inject "Calculate ROI" button on Copart lot pages | Pending |
-| 8 | Content script to extract all visible lot fields (see table above) | Pending |
-| 9 | Render ROI breakdown as overlay UI | Pending |
+| 6 | Build Chrome extension scaffold (React + Vite + CRXJS) | Done |
+| 7 | Inject "Calculate ROI" button on Copart lot pages | Done |
+| 8 | Content script to extract all visible lot fields (see table above) | Done — selectors need live-DOM verification |
+| 9 | Render ROI breakdown as overlay UI | Done |
 
 ### What's working
-- Nothing yet — Phase 3 has not started.
+- Extension scaffold builds clean (`npm run build`) — MV3 manifest, content script, shadow-root overlay.
+- `Calculate ROI` button injected bottom-right; re-injects across Copart's SPA navigation.
+- Scraping (`extract.ts`) reads lot title, ARV, current bid, damage, odometer, colour, and images by **label
+  text** (resilient to Copart's obfuscated CSS classes). Processing (`parse.ts`) normalises `"£3,450"` → `3450`.
+- Overlay shows scraped summary, editable hammer/ARV, a manual damage editor, and the full ROI breakdown from
+  the backend. This makes Phase 1 Task 2 (ARV scrape) functional end-to-end.
 
 ### Blockers
+- **Selectors are unverified against a live lot** — `extract.ts` uses best-effort label strings and image-CDN
+  host patterns. They must be confirmed by inspecting a real Copart UK lot page before the scrape is reliable.
+- **Damage entry is manual** — auto-detection is Phase 2 (YOLO). The overlay shows Copart's own Primary/Secondary
+  damage as a hint and lets the user pick panels by hand.
 - **VIN/VRM are masked** — confirmed on guest account. Extension uses lot title for vehicle ID and skips
   VIN/VRM entirely for v1. This is acceptable; see Task 1.
 - **Copart uses Imperva/Akamai bot protection** — the extension runs as a real user browser session which
@@ -104,24 +118,27 @@ inputs.
 
 ---
 
-## Phase 4 — Parts Pricing Refinement & VIN Decode
+## Phase 4 — Parts Pricing Refinement
 
-**Goal:** Improve eBay part price accuracy with trim/paint/OEM filtering. Use VIN decode (requires member
-account) to get exact paint code and trim level. Use SQLite price history to stabilise estimates over time.
+**Goal:** Improve eBay part price accuracy with trim/paint/OEM filtering. Derive vehicle colour from lot photos
+(by sampling within Phase 2 YOLO panel masks) to match painted parts. Use SQLite price history to stabilise
+estimates over time.
 
 ### Tasks
 | # | Task | Status |
 |---|------|--------|
 | 10 | Improve eBay search accuracy with trim/paint/OEM filters (from title parse) | Pending |
-| 11 | VIN decode via DVLA API for exact paint code + trim (requires Copart member account) | Pending |
+| 11 | Derive car colour from lot photos (sample pixels within YOLO panel masks) for painted-part matching | Pending |
 | 12 | AutoTrader/Marketcheck UK cross-check for ARV validation | Pending |
 
 ### What's working
 - Median price from 10 eBay UK used listings is a reasonable baseline.
 
 ### Blockers
-- **VIN decode requires member account** — Copart masks VIN for guests. Upgrade path: pay for a Copart
-  member account to unlock VIN, then hit DVLA VES API.
+- **Colour from photos is approximate** — sampling pixels within YOLO panel masks gives a rough colour
+  ("black"), not an exact paint code ("Phantom Black Pearl LZ9Y"). Dirt, shadows, and metallic/pearl finishes
+  skew it, and the whole-image average is useless (background is gravel + other cars) — masks are essential.
+  Good enough for loose eBay matching; exact paint codes are out of scope.
 - **SQLite caching (Task 3) must land first** — price history smoothing requires stored data.
 - **eBay result quality varies** — `PANEL_SEARCH_TERMS` may return wrong-side parts or aftermarket panels.
   Improving this requires iterating on real search results.
@@ -136,10 +153,10 @@ Phase 1 (title parse, ARV scrape, SQLite)
     └── Phase 4 (better eBay queries build on title parse)
 
 Phase 2 (YOLO fine-tuning) — independent, runs in parallel
+    └── Phase 4 (colour sampling reuses YOLO panel masks for painted-part matching)
 
 Phase 3 (extension)
     └── Phase 4 (SQLite caching useful before price history matters)
-    └── Phase 4 (VIN decode improves accuracy post-launch)
 ```
 
 ## Suggested Build Order
@@ -150,4 +167,4 @@ Phase 3 (extension)
 4. **Chrome extension scaffold + data extraction** (Phase 3, Tasks 6–8) — build once backend handles all inputs
 5. **ROI overlay UI** (Phase 3, Task 9) — surface the result on the Copart page
 6. **YOLO labelling + training** (Phase 2, Tasks 4–5) — parallel workstream, GPU-dependent
-7. **eBay + VIN refinement** (Phase 4, Tasks 10–12) — ongoing accuracy improvement post-launch
+7. **eBay + colour refinement** (Phase 4, Tasks 10–12) — ongoing accuracy improvement post-launch
