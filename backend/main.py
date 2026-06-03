@@ -1,7 +1,11 @@
 import asyncio
+import logging
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+
+logging.basicConfig(level=logging.INFO)
 
 from damage import detect_damage
 from ebay import search_part_price
@@ -13,6 +17,15 @@ from vehicle import parse_lot_title
 load_dotenv()
 
 app = FastAPI(title="Carnalysis — Copart Profit Estimator")
+
+# Allow requests from Chrome extensions and local dev tools.
+# This backend is local-only, so open CORS is fine.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
@@ -60,21 +73,16 @@ async def analyze_lot(req: AnalyzeRequest):
 
     panel_estimates = []
     total_parts = 0.0
-    total_labor = 0.0
 
     for i, obs in enumerate(observations):
         strategy = REPAIR_STRATEGY.get(obs.damage_type, REPAIR_STRATEGY["scratch"])
         parts_cost = float(prices_by_index.get(i) or 0.0) if strategy["parts_needed"] else 0.0
-        labor_cost = float(strategy["labor_gbp"])
         total_parts += parts_cost
-        total_labor += labor_cost
         panel_estimates.append(
             PanelEstimate(
                 panel=obs.panel,
                 damage_type=obs.damage_type,
                 parts_cost=parts_cost,
-                labor_cost=labor_cost,
-                total=parts_cost + labor_cost,
             )
         )
 
@@ -82,7 +90,7 @@ async def analyze_lot(req: AnalyzeRequest):
         hammer_price=req.hammer_price,
         arv=req.arv,
         total_parts=total_parts,
-        total_labor=total_labor,
+        transport=req.transport,
     )
 
     return AnalyzeResponse(observations=panel_estimates, **result)

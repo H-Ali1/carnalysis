@@ -1,10 +1,10 @@
 # Repair approach per damage type — parts_needed drives eBay lookup
 REPAIR_STRATEGY = {
-    "scratch": {"parts_needed": False, "labor_gbp": 80},
-    "scuff":   {"parts_needed": False, "labor_gbp": 80},
-    "dent":    {"parts_needed": False, "labor_gbp": 150},
-    "crack":   {"parts_needed": True,  "labor_gbp": 200},
-    "missing": {"parts_needed": True,  "labor_gbp": 200},
+    "scratch": {"parts_needed": False},
+    "scuff":   {"parts_needed": False},
+    "dent":    {"parts_needed": False},
+    "crack":   {"parts_needed": True},
+    "missing": {"parts_needed": True},
 }
 
 # eBay search config per panel: term used in query + min price floor to filter sub-components

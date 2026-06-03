@@ -1,7 +1,10 @@
 import httpx
+import logging
 import os
 import time
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from panel_config import PANEL_SEARCH_TERMS
 
@@ -49,13 +52,16 @@ async def search_part_price(panel: str, make: str, model: str, year: int) -> Opt
                 },
                 params={
                     "q": query,
-                    "filter": f"itemLocationCountry:GB,conditions:{{USED}},price:[{min_price}..],priceCurrency:GBP",
+                    "filter": f"itemLocationCountry:GB,conditions:{{3000}},price:[{min_price}..],priceCurrency:GBP",
                     "limit": 10,
                 },
             )
             resp.raise_for_status()
-            items = resp.json().get("itemSummaries", [])
-    except Exception:
+            data = resp.json()
+            items = data.get("itemSummaries", [])
+            logger.info("eBay %r → %d items (total: %s)", query, len(items), data.get("total", "?"))
+    except Exception as exc:
+        logger.warning("eBay search failed for %r: %s", query, exc)
         return None
 
     prices = sorted(
@@ -64,5 +70,6 @@ async def search_part_price(panel: str, make: str, model: str, year: int) -> Opt
         if "price" in item
     )
     if not prices:
+        logger.info("eBay %r → no usable prices after filtering", query)
         return None
     return prices[len(prices) // 2]  # median of relevance-ranked results

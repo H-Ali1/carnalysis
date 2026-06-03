@@ -48,6 +48,7 @@ export interface LotData {
   colour: string | null;
   fuel: string | null;
   bodyStyle: string | null;
+  yardName: string | null;
   images: string[];
 }
 
@@ -57,14 +58,13 @@ export interface AnalyzeRequest {
   images: string[];
   hammer_price: number;
   arv: number;
+  transport?: number;
 }
 
 export interface PanelEstimate {
   panel: string;
   damage_type: string;
   parts_cost: number;
-  labor_cost: number;
-  total: number;
 }
 
 export interface AnalyzeResponse {
@@ -72,7 +72,6 @@ export interface AnalyzeResponse {
   hammer_price: number;
   copart_fees: number;
   total_parts: number;
-  total_labor: number;
   transport: number;
   total_cost: number;
   arv: number;

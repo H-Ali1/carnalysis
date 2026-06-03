@@ -22,14 +22,13 @@ class AnalyzeRequest(BaseModel):
     images: List[str] = []                             # Copart lot image URLs (YOLO path)
     hammer_price: float
     arv: float
+    transport: float | None = None   # calculated by extension; falls back to TRANSPORT_GBP if omitted
 
 
 class PanelEstimate(BaseModel):
     panel: str
     damage_type: str
     parts_cost: float
-    labor_cost: float
-    total: float
 
 
 class AnalyzeResponse(BaseModel):
@@ -37,7 +36,6 @@ class AnalyzeResponse(BaseModel):
     hammer_price: float
     copart_fees: float
     total_parts: float
-    total_labor: float
     transport: float
     total_cost: float
     arv: float

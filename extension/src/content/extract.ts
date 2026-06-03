@@ -75,6 +75,15 @@ function getImages(): string[] {
   return Array.from(urls).slice(0, 14);
 }
 
+function getYardName(): string | null {
+  // "Sale name: YORK" and "Location: YORK" both appear on lot pages.
+  const raw =
+    getFieldByLabel(["Sale name", "Location"]) ??
+    // Fallback: scan for the bold blue yard link text Copart renders near the top.
+    normalize(document.querySelector<HTMLElement>("[data-uname='lotDetailsLocation']")?.textContent);
+  return raw ? raw.toUpperCase().trim() || null : null;
+}
+
 export function extractLotData(): LotData {
   const arvRaw = getFieldByLabel([
     "Estimated retail value",
@@ -99,6 +108,7 @@ export function extractLotData(): LotData {
     colour: getFieldByLabel(["Colour", "Color"]),
     fuel: getFieldByLabel(["Fuel", "Fuel type"]),
     bodyStyle: getFieldByLabel(["Body style"]),
+    yardName: getYardName(),
     images: getImages(),
   };
 }
