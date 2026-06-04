@@ -10,7 +10,6 @@ import {
 } from "../types";
 import { extractLotData } from "../content/extract";
 import { estimateTransport, isValidUKPostcode, YARD_POSTCODES } from "../content/transport";
-import { type AutoTraderResult, buildSearchUrl } from "../api/autotrader";
 import { analyzeLot } from "../api/client";
 
 const POSTCODE_KEY = "carnalysis_user_postcode";
@@ -19,25 +18,15 @@ const FLAT_TRANSPORT = 150;
 const gbp = (n: number) =>
   new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
 
-type ArvSource = "copart" | "autotrader" | "manual";
-
-interface BgResponse { ok: boolean; data: AutoTraderResult | null; error?: string }
-
 export function Overlay({ onClose }: { onClose: () => void }) {
   const scraped = useMemo<LotData>(() => extractLotData(), []);
 
   const [hammerPrice, setHammerPrice] = useState(scraped.hammerPrice ?? 0);
-  const [arvSource, setArvSource] = useState<ArvSource>("copart");
-  const [manualArv, setManualArv] = useState(scraped.arv ?? 0);
+  const [arv, setArv] = useState(scraped.arv ?? 0);
   const [damage, setDamage] = useState<DamageObservation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
-
-  // AutoTrader ARV
-  const [atResult, setAtResult] = useState<AutoTraderResult | null>(null);
-  const [atLoading, setAtLoading] = useState(false);
-  const [atError, setAtError] = useState<string | null>(null);
 
   // Transport
   const [userPostcode, setUserPostcode] = useState<string>(
@@ -49,34 +38,6 @@ export function Overlay({ onClose }: { onClose: () => void }) {
 
   const yardKnown = scraped.yardName ? scraped.yardName in YARD_POSTCODES : false;
 
-  // Kick off AutoTrader fetch as soon as we have vehicle info
-  useEffect(() => {
-    const title = scraped.lotTitle;
-    if (!title) return;
-    // Parse make/model/year from scraped title via background worker
-    // (we infer from the title the backend would parse — good enough for the search)
-    const yearMatch = title.match(/^(\d{4})\s+(\S+)\s+(\S+)/);
-    if (!yearMatch) return;
-    const [, yearStr, make, model] = yearMatch;
-    const year = parseInt(yearStr, 10);
-    if (!make || !model || isNaN(year)) return;
-
-    setAtLoading(true);
-    setAtError(null);
-    chrome.runtime.sendMessage(
-      { type: "FETCH_AUTOTRADER", make, model, year, mileage: scraped.odometer ?? null },
-      (resp: BgResponse) => {
-        setAtLoading(false);
-        if (!resp || !resp.ok || !resp.data) {
-          setAtError(resp?.error ?? "No results found on AutoTrader.");
-          return;
-        }
-        setAtResult(resp.data);
-      },
-    );
-  }, [scraped.lotTitle, scraped.odometer]);
-
-  // Transport calculation
   useEffect(() => {
     if (!isValidUKPostcode(userPostcode) || !scraped.yardName) {
       setTransport(null);
@@ -101,14 +62,6 @@ export function Overlay({ onClose }: { onClose: () => void }) {
   }, [userPostcode, scraped.yardName, yardKnown]);
 
   const transportCost = transport?.cost ?? FLAT_TRANSPORT;
-
-  // Resolved ARV based on user's selection
-  const arv =
-    arvSource === "copart"
-      ? (scraped.arv ?? manualArv)
-      : arvSource === "autotrader"
-        ? (atResult?.median ?? manualArv)
-        : manualArv;
 
   const COPART_FEE_RATE = 0.12;
   function maxBidFor(targetProfit: number): number | null {
@@ -177,55 +130,26 @@ export function Overlay({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        {/* ARV source selection */}
-        <div style={s.sectionLabel}>After Repair Value — select source</div>
-        <div style={s.arvCards}>
-          {/* Copart */}
-          <ArvCard
-            label="Copart estimate"
-            selected={arvSource === "copart"}
-            onClick={() => { setArvSource("copart"); setResult(null); }}
-            value={scraped.arv != null ? gbp(scraped.arv) : null}
-            sub="From lot page"
-            unavailable={scraped.arv == null}
-          />
-          {/* AutoTrader */}
-          <ArvCard
-            label="AutoTrader"
-            selected={arvSource === "autotrader"}
-            onClick={() => { if (atResult) { setArvSource("autotrader"); setResult(null); } }}
-            value={atResult ? gbp(atResult.median) : null}
-            sub={
-              atLoading
-                ? "Fetching…"
-                : atResult
-                  ? `${atResult.count} listings · ${gbp(atResult.low)}–${gbp(atResult.high)}`
-                  : atError ?? "—"
-            }
-            loading={atLoading}
-            unavailable={!atLoading && !atResult}
-            link={atResult?.searchUrl ?? buildSearchUrl(
-              scraped.lotTitle.split(" ")[1] ?? "",
-              scraped.lotTitle.split(" ")[2] ?? "",
-              parseInt(scraped.lotTitle.split(" ")[0] ?? "0", 10),
-            )}
-          />
-        </div>
-        {/* Manual override */}
+        {/* Inputs */}
         <label style={s.field}>
-          <div style={s.manualArvHeader}>
-            <span style={s.fieldLabel}>Manual ARV (£) — or type your own estimate</span>
-            {arvSource !== "manual" && (
-              <button style={s.useManualBtn} onClick={() => { setArvSource("manual"); setResult(null); }}>
-                Use manual
-              </button>
-            )}
-          </div>
+          <span style={s.fieldLabel}>Hammer price (£)</span>
           <input
-            style={{ ...s.input, outline: arvSource === "manual" ? "2px solid #0b5fff" : undefined }}
+            style={s.input}
             type="number"
-            value={arvSource === "manual" ? manualArv : arv}
-            onChange={(e) => { setManualArv(Number(e.target.value)); setArvSource("manual"); setResult(null); }}
+            value={hammerPrice}
+            onChange={(e) => { setHammerPrice(Number(e.target.value)); setResult(null); }}
+          />
+        </label>
+
+        <label style={s.field}>
+          <span style={s.fieldLabel}>
+            After Repair Value (£){scraped.arv == null ? " — not found on page, enter manually" : " — from Copart, edit if needed"}
+          </span>
+          <input
+            style={s.input}
+            type="number"
+            value={arv}
+            onChange={(e) => { setArv(Number(e.target.value)); setResult(null); }}
           />
         </label>
 
@@ -256,17 +180,6 @@ export function Overlay({ onClose }: { onClose: () => void }) {
             )}
           </div>
         </div>
-
-        {/* Hammer */}
-        <label style={s.field}>
-          <span style={s.fieldLabel}>Hammer price (£)</span>
-          <input
-            style={s.input}
-            type="number"
-            value={hammerPrice}
-            onChange={(e) => { setHammerPrice(Number(e.target.value)); setResult(null); }}
-          />
-        </label>
 
         {/* Damage */}
         <div style={s.damageHeader}>
@@ -304,10 +217,7 @@ export function Overlay({ onClose }: { onClose: () => void }) {
               value={gbp(result.transport)}
             />
             <Row label="Total cost" value={gbp(result.total_cost)} strong />
-            <Row
-              label={`ARV (${arvSource === "autotrader" ? "AutoTrader" : arvSource === "copart" ? "Copart" : "manual"})`}
-              value={gbp(result.arv)}
-            />
+            <Row label="ARV (Copart)" value={gbp(result.arv)} />
             <div style={{ ...s.profit, color: profitColor }}>
               <span>Profit</span>
               <span>{gbp(result.profit_estimate)} ({result.roi_percent}%)</span>
@@ -341,47 +251,6 @@ export function Overlay({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ArvCard({
-  label, selected, onClick, value, sub, loading, unavailable, link,
-}: {
-  label: string; selected: boolean; onClick: () => void;
-  value: string | null; sub: string; loading?: boolean; unavailable?: boolean; link?: string;
-}) {
-  return (
-    <div
-      style={{
-        ...s.arvCard,
-        borderColor: selected ? "#0b5fff" : "#d0d7de",
-        background: selected ? "#f0f5ff" : "#fff",
-        opacity: unavailable && !loading ? 0.55 : 1,
-        cursor: unavailable && !loading ? "not-allowed" : "pointer",
-      }}
-      onClick={onClick}
-    >
-      <div style={s.arvCardTop}>
-        <span style={{ ...s.arvCardLabel, color: selected ? "#0b5fff" : "#656d76" }}>{label}</span>
-        {link && (
-          <a
-            href={link}
-            target="_blank"
-            rel="noreferrer"
-            style={s.arvLink}
-            onClick={(e) => e.stopPropagation()}
-          >
-            View ↗
-          </a>
-        )}
-      </div>
-      <div style={s.arvCardValue}>
-        {loading ? <span style={{ color: "#656d76", fontSize: 12 }}>Fetching…</span>
-          : value ? <strong>{value}</strong>
-          : <span style={{ color: "#9198a1" }}>—</span>}
-      </div>
-      <div style={s.arvCardSub}>{sub}</div>
-    </div>
-  );
-}
-
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div style={{ ...s.row, fontWeight: strong ? 600 : 400 }}>
@@ -393,7 +262,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 
 const s: Record<string, CSSProperties> = {
   panel: {
-    position: "fixed", top: 16, right: 16, width: 360, maxHeight: "92vh",
+    position: "fixed", top: 16, right: 16, width: 340, maxHeight: "92vh",
     overflowY: "auto", background: "#fff", color: "#1f2328", borderRadius: 10,
     boxShadow: "0 8px 32px rgba(0,0,0,0.28)",
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
@@ -411,22 +280,12 @@ const s: Record<string, CSSProperties> = {
     background: "#f6f8fa", borderRadius: 8, padding: "8px 10px",
     display: "flex", flexDirection: "column", gap: 3,
   },
-  sectionLabel: { fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", color: "#656d76" },
-  arvCards: { display: "flex", gap: 8 },
-  arvCard: {
-    flex: 1, border: "2px solid", borderRadius: 8, padding: "8px 10px",
-    display: "flex", flexDirection: "column" as const, gap: 2, transition: "border-color 0.1s",
-  },
-  arvCardTop: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  arvCardLabel: { fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.04em" },
-  arvCardValue: { fontSize: 16, fontWeight: 700, color: "#1f2328" },
-  arvCardSub: { fontSize: 11, color: "#656d76" },
-  arvLink: { fontSize: 11, color: "#0b5fff", textDecoration: "none" },
-  manualArvHeader: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  useManualBtn: {
-    fontSize: 11, background: "transparent", border: "1px solid #d0d7de",
-    borderRadius: 4, padding: "2px 6px", cursor: "pointer", color: "#656d76",
-  },
+  row: { display: "flex", justifyContent: "space-between", gap: 12 },
+  rowLabel: { color: "#656d76" },
+  rowValue: { textAlign: "right" },
+  field: { display: "flex", flexDirection: "column", gap: 4 },
+  fieldLabel: { color: "#656d76", fontSize: 12 },
+  input: { padding: "6px 8px", border: "1px solid #d0d7de", borderRadius: 6, fontSize: 13 },
   transportBox: {
     background: "#fff8e1", border: "1px solid #f0c040", borderRadius: 8,
     padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6,
@@ -437,12 +296,6 @@ const s: Record<string, CSSProperties> = {
     padding: "1px 7px", fontSize: 11, fontWeight: 600,
   },
   transportEstimate: { fontSize: 12, minHeight: 16 },
-  row: { display: "flex", justifyContent: "space-between", gap: 12 },
-  rowLabel: { color: "#656d76" },
-  rowValue: { textAlign: "right" },
-  field: { display: "flex", flexDirection: "column", gap: 4 },
-  fieldLabel: { color: "#656d76", fontSize: 12 },
-  input: { padding: "6px 8px", border: "1px solid #d0d7de", borderRadius: 6, fontSize: 13 },
   damageHeader: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   damageRow: { display: "flex", gap: 6, alignItems: "center" },
   select: { flex: 1, padding: "5px 6px", border: "1px solid #d0d7de", borderRadius: 6 },
