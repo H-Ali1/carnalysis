@@ -1,0 +1,38 @@
+# Tool configuration only; dependencies live in requirements*.txt.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "B",        # bugbear
+    "UP",       # pyupgrade
+    "N",        # pep8-naming
+    "SIM",      # simplify
+    "ASYNC",    # async pitfalls
+    "PT",       # pytest style
+    "RUF",      # ruff-specific
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app"]
+
+[[tool.mypy.overrides]]
+# Optional ML extras (requirements-ml.txt); not installed in CI.
+module = ["ultralytics", "ultralytics.*", "PIL", "PIL.*"]
+ignore_missing_imports = true

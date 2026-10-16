@@ -1,0 +1,5 @@
+-r requirements.txt
+httpx2>=2.13  # transport for FastAPI's TestClient
+mypy>=1.11
+pytest>=8
+ruff>=0.6
