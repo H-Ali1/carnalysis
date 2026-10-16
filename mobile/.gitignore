@@ -1,0 +1,18 @@
+# Expo-specific ignores; general rules live in the repository root .gitignore.
+.expo/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# Generated native projects (`npx expo prebuild`)
+/ios
+/android
+.kotlin/
+
+# Signing credentials
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
