@@ -1,0 +1,13 @@
+{
+  "name": "carnalysis",
+  "private": true,
+  "description": "Repository-wide tooling. Each app has its own package.json; see README.md.",
+  "license": "MIT",
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15"
+  }
+}
