@@ -1,5 +1,10 @@
 # Project Specification: Copart Profit Estimator (CPE)
 
+> **Historical document.** This is the original problem statement the project started from. Several
+> parts were deliberately changed during development — VIN/VRM decoding, server-side scraping with
+> Playwright and AutoTrader-based ARV were all dropped. See [`ROADMAP.md`](../ROADMAP.md) for the
+> decisions and their reasoning, and the [README](../README.md) for the current design.
+
 ## 1. Project Overview
 A tool designed to automate the ROI analysis for vehicles listed on Copart UK. The system identifies damage via Computer Vision, estimates repair costs by searching for parts on eBay, and calculates potential profit based on market resale values.
 
