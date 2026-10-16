@@ -1,0 +1,69 @@
+<!doctype html>
+<!--
+  Trimmed-down stand-in for a Copart UK lot page. Class names mimic Copart's hashed,
+  meaningless ones; extraction must rely on label text instead. Each field is laid out
+  to exercise one of the three label-lookup strategies in src/extract/extract.ts.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>2017 VOLKSWAGEN POLO 1.0 75 MATCH EDITION 5DR | Copart UK</title>
+  </head>
+  <body>
+    <header>
+      <nav><a href="/">Home</a> <a href="/lotSearchResults">Find a vehicle</a></nav>
+      <img src="https://www.copart.co.uk/content/images/logo.svg" alt="Copart" />
+    </header>
+
+    <main>
+      <div class="lot-header_a91f">
+        <h1 class="title_77c2">2017 VOLKSWAGEN POLO 1.0 75 MATCH EDITION 5DR</h1>
+        <p class="subtitle_77c2">Lot number: 41861706 | Sale date: Tue 21 Oct</p>
+      </div>
+
+      <section class="gallery_0b3e">
+        <img src="https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/1024/abc123_thb.jpg" alt="" />
+        <img src="https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/1024/def456_ful.jpg" alt="" />
+        <img src="https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/1024/abc123_thb.jpg" alt="" />
+      </section>
+
+      <section class="details_5d10">
+        <!-- Strategy 1: the value is the label's next sibling. -->
+        <div class="row_c4e1">
+          <span class="label_9f2a">Odometer:</span>
+          <span class="value_9f2a">63,118 mi (ACTUAL)</span>
+        </div>
+        <div class="row_c4e1">
+          <span class="label_9f2a">Estimated retail value:</span>
+          <span class="value_9f2a">£6,500 GBP</span>
+        </div>
+        <div class="row_c4e1">
+          <span class="label_9f2a">Primary damage:</span>
+          <span class="value_9f2a">FRONT END</span>
+        </div>
+        <div class="row_c4e1">
+          <span class="label_9f2a">Secondary damage:</span>
+          <span class="value_9f2a">SIDE</span>
+        </div>
+        <div class="row_c4e1">
+          <span class="label_9f2a">Colour:</span>
+          <span class="value_9f2a">SILVER</span>
+        </div>
+
+        <!-- Strategy 2: an empty element sits between label and value. -->
+        <div class="row_c4e1">
+          <span class="label_9f2a">Body style:</span><i class="icon-info"></i>
+          <span class="value_9f2a">HATCHBACK</span>
+        </div>
+
+        <!-- Strategy 3: label and value share one element. -->
+        <p class="note_118b">Fuel: PETROL</p>
+      </section>
+
+      <aside class="bid-panel_e83d">
+        <div><label>Current bid</label> <strong>£1,225</strong></div>
+        <div><span>Sale name:</span> <a href="/locations/york">York</a></div>
+      </aside>
+    </main>
+  </body>
+</html>
