@@ -1,0 +1,6 @@
+# LF line endings in the repository and in every checkout, whatever the platform's
+# core.autocrlf setting — matching .editorconfig and the formatters (Biome, Ruff).
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
