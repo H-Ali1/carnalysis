@@ -1,26 +1,28 @@
 import { defineManifest } from "@crxjs/vite-plugin";
+import { loadEnv } from "vite";
+import pkg from "./package.json";
 
-export default defineManifest({
-  manifest_version: 3,
-  name: "Carnalysis — Copart ROI",
-  version: "0.1.0",
-  description: "Scrapes a Copart UK lot page and shows the estimated salvage ROI.",
-  icons: {},
-  content_scripts: [
-    {
-      matches: [
-        "https://www.copart.co.uk/lot/*",
-        "https://www.copart.com/lot/*",
-      ],
-      js: ["src/content/index.tsx"],
-      run_at: "document_idle",
-    },
-  ],
-  host_permissions: [
-    "http://localhost:8000/*",
-    "http://localhost:8001/*",
-    "http://127.0.0.1:8000/*",
-    "http://127.0.0.1:8001/*",
-    "https://api.postcodes.io/*",
-  ],
+export default defineManifest(({ mode }) => {
+  const backendUrl = loadEnv(mode, ".", "VITE_").VITE_BACKEND_URL || "http://localhost:8000";
+
+  return {
+    manifest_version: 3,
+    name: "Carnalysis — Copart ROI",
+    version: pkg.version,
+    description: "Estimates the profit and ROI of a Copart UK salvage lot, right on the lot page.",
+    // Remembers the user's postcode between lots.
+    permissions: ["storage"],
+    // Requests come from the Copart page, so the backend must also allow that origin via
+    // CORS (it does by default).
+    host_permissions: [`${new URL(backendUrl).origin}/*`, "https://api.postcodes.io/*"],
+    content_scripts: [
+      {
+        // All pages, not just /lot/*: Copart navigates client-side, so a user who reaches
+        // a lot from search results never triggers a fresh page load.
+        matches: ["https://www.copart.co.uk/*"],
+        js: ["src/content/index.tsx"],
+        run_at: "document_idle",
+      },
+    ],
+  };
 });
