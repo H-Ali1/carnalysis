@@ -217,4 +217,4 @@ and are not financial advice.
 
 ## License
 
-[MIT](LICENSE) © 2026 Hashir Ali
+[MIT](LICENSE) © 2026 
